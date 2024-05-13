@@ -44,6 +44,12 @@ Ignore any errors and warnings on dependencies after running this. ( warnings re
 python -m pip install flashlight-text flashlight-sequence
 ```
 
+6. install sacrebleu:
+
+```
+python -m pip install sacrebleu==1.5.1
+```
+
 ## Data Preparation
 
 ### LibriSpeech
