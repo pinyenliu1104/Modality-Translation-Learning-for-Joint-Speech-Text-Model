@@ -8,23 +8,20 @@ CAUTION: always use `python -m pip` instead of `pip` otherwise it will install g
    for example:
 
    ```
-   conda create --name myEnv python=3.9  conda activate myEnv
+   conda create --name myEnv python=3.9
+   conda activate myEnv
    ```
 
-CAUTION: always use `python -m pip` instead of `pip` inside the environment otherwise it will install globally instead of just installing inside the environment.
-
-2. install Pytorch with GPU support:
+2. install Pytorch v1.10.1 with GPU support:
 
 ```
-python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cuXXX
+pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu111/torch_stable.html
 ```
-
-where 'XXX' is your CUDA version. for example, CUDA 11.6 has 'XXX' as 116. For checking which version you require based on your gpu, use-`nvidia-smi`
 
 3. clone fairseq repository and install editable:
 
 ```
-git clone https://github.com/pytorch/fairseq
+git submodule update --init fairseq
 cd fairseq
 python -m pip install --editable ./
 python setup.py build develop
