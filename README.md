@@ -1,4 +1,4 @@
-# Modality-Translation-Modeling
+# Modality-Translation-Learning-for-Joint-Speech-Text-Model
 
 ## [Steps to install fairseq](https://github.com/facebookresearch/fairseq/issues/5289#issuecomment-1906697931)
 
@@ -188,8 +188,6 @@ fairseq-hydra-train \
     --config-dir examples/wav2vec/config/pretraining \
     --config-name wav2vec2_base_librispeech
 ```
-
-![image](https://hackmd.io/_uploads/rJ2DwT-_p.png)
 
 #### Fine-tune a pre-trained model with CTC
 
