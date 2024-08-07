@@ -1,4 +1,5 @@
 # ----------------------------------------------------------------------------
+# This code is modified from the original code of the SpeechLM project
 # SpeechLM: Enhanced Speech Pre-Training with Unpaired Textual Data (https://arxiv.org/abs/2209.15329)
 # Github source: https://github.com/microsoft/SpeechT5/tree/main/SpeechLM
 # Code based on fairseq: https://github.com/facebookresearch/fairseq/tree/272c4c5197250997148fb12c0db6306035f166a4
@@ -49,6 +50,14 @@ class HSTCriterionConfig(FairseqDataclass):
         default=0.0,
         metadata={"help": "masked unit modeling weight from the text end"},
     )
+    contrastive_weight: float = field(
+        default=0.0,
+        metadata={"help": "weight of contrastive loss"},
+    )
+    contrastive_temperature: float = field(
+        default=1.0,
+        metadata={"help": "temperature for contrastive loss"},
+    )
     report_accuracy: bool = field(
         default=True,
         metadata={"help": "report decoder accuracy metric"},
@@ -62,8 +71,8 @@ class HSTCriterionConfig(FairseqDataclass):
         metadata={"help": "mask out the blank of ctc, only when dec_loss_type=ctc"},
     )
 
-@register_criterion("speechlm_criterion", dataclass=HSTCriterionConfig)
-class SpeechLMCriterion(FairseqCriterion):
+@register_criterion("modality_translation_learning_with_contrastive", dataclass=HSTCriterionConfig)
+class ModalityTranslationLearningWithContrastive(FairseqCriterion):
     def __init__(
         self, 
         task, 
@@ -73,6 +82,8 @@ class SpeechLMCriterion(FairseqCriterion):
         log_keys=None, 
         text_ctc_weight=0.1,
         text_mum_weight=0,
+        contrastive_weight=0,
+        contrastive_temperature=1.0,
         report_accuracy=False, 
         ignore_prefix_size=0, 
         no_ctc_blank=False,
@@ -84,6 +95,8 @@ class SpeechLMCriterion(FairseqCriterion):
         self.log_keys = [] if log_keys is None else log_keys
         self.text_ctc_weight = text_ctc_weight
         self.text_mum_weight = text_mum_weight
+        self.contrastive_weight = contrastive_weight
+        self.contrastive_temperature = contrastive_temperature
         self.report_accuracy = report_accuracy
         self.ignore_prefix_size = ignore_prefix_size
         self.no_ctc_blank = no_ctc_blank
@@ -143,10 +156,32 @@ class SpeechLMCriterion(FairseqCriterion):
                 corr_u, count_u = compute_correct(logp_u, targ_u)
                 logging_output[f"correct_u_{i}{suffix}"] = corr_u
                 logging_output[f"count_u_{i}{suffix}"] = count_u
-
         return loss, sample_size, logging_output
 
+    def compute_contrastive_loss(self, model, sample, net_output, text_sample, text_net_output, reduction):
+        audio_embs = net_output["encoder_out"][0].transpose(0, 1)
+        text_embs = text_net_output["encoder_out"][0].transpose(0, 1)
+        audio_len = audio_embs.size(0)
+        text_len = text_embs.size(0)
+        short_audio_len = min(audio_len, text_len)
+        audio_embs = audio_embs[:short_audio_len]
+        text_embs = text_embs[:short_audio_len]
 
+        audio_embs = F.normalize(audio_embs, p=2, dim=-1)
+        text_embs = F.normalize(text_embs, p=2, dim=-1)
+
+        # mean pool to get same length
+        audio_embs = audio_embs.mean(dim=1)
+        text_embs = text_embs.mean(dim=1)
+        logits = F.cosine_similarity(audio_embs, text_embs, dim=-1)
+        logits /= self.contrastive_temperature
+        loss = -torch.nn.LogSoftmax(0)(logits).diag()
+
+        if reduction:
+            loss = loss.sum()
+
+        return loss
+    
     def forward(self, model, sample, reduce=True, log_pred=False):
         """Compute the loss for the given sample.
         Returns a tuple with three elements:
@@ -218,6 +253,16 @@ class SpeechLMCriterion(FairseqCriterion):
                 loss += self.text_ctc_weight * text_ctc_loss * sample_size / text_sample_size
                 logging_output["text_ctc_loss"] = utils.item(text_ctc_loss)
                 logging_output["text_sample_size"] = text_sample_size
+        
+        ### 3. do contrastive loss computation
+        if self.contrastive_weight > 0:
+            contrastive_loss = self.compute_contrastive_loss(
+                model, 
+                sample, net_output, text_sample, text_net_output, 
+                reduction=reduction
+            )
+            loss += self.contrastive_weight * contrastive_loss
+            logging_output["contrastive_loss"] = utils.item(contrastive_loss)
 
         logging_output = {
             "loss": utils.item(loss) if reduce else loss,

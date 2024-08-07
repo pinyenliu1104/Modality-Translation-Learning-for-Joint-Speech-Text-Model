@@ -7,20 +7,20 @@ CAUTION: always use `python -m pip` instead of `pip` otherwise it will install g
 1. create and activate a conda environment with python version 3.9
    for example:
 
-   ```
-   conda create --name myEnv python=3.9
-   conda activate myEnv
-   ```
+```bash
+conda create --name myEnv python=3.9
+conda activate myEnv
+```
 
 2. install Pytorch v1.10.1 with GPU support:
 
-```
+```bash
 pip install torch==1.10.1+cu111 torchvision==0.11.2+cu111 torchaudio==0.10.1 -f https://download.pytorch.org/whl/cu111/torch_stable.html
 ```
 
 3. clone fairseq repository and install editable:
 
-```
+```bash
 git submodule update --init fairseq
 cd fairseq
 python -m pip install --editable ./
@@ -29,7 +29,7 @@ python setup.py build develop
 
 4. upgrade hydra-core and numpy and tensorboard:
 
-```
+```bash
 python -m pip install --upgrade hydra-core numpy tensorboard
 ```
 
@@ -37,13 +37,13 @@ Ignore any errors and warnings on dependencies after running this. ( warnings re
 
 5. install flashlight python bindings:
 
-```
+```bash
 python -m pip install flashlight-text flashlight-sequence
 ```
 
 6. install sacrebleu:
 
-```
+```bash
 python -m pip install sacrebleu==1.5.1
 ```
 
@@ -60,27 +60,51 @@ python -m pip install sacrebleu==1.5.1
   - Put yout prepared data into `$data_dir`
 - Prepare validation data `dev-clean`
 
-```
-python examples/wav2vec/wav2vec_manifest.py /home/espnet/egs2/librispeech/asr1/downloads/LibriSpeech/dev-clean --dest /home/SpeechT5/SpeechLM/dataset/LibriSpeech/asr --ext flac --valid-percent 0
+```bash
+python examples/wav2vec/wav2vec_manifest.py path/to/your/dataset --dest /path/to/save/transfer/files --ext flac --valid-percent 0
+
+# e.g. python examples/wav2vec/wav2vec_manifest.py /home/espnet/egs2/librispeech/asr1/downloads/LibriSpeech/dev-clean --dest /home/SpeechT5/SpeechLM/dataset/LibriSpeech/asr --ext flac --valid-percent 0
 ```
 
 ### IEMOCAP
 
 - manifest.py to get tsv
 
-```
-python examples/wav2vec/wav2vec_manifest.py \
+```bash
+python examples/wav2vec/wav2vec_manifest.py path/to/your/dataset --dest /path/to/save/transfer/files --ext wav --valid-percent 0
+
+'''
+e.g. python examples/wav2vec/wav2vec_manifest.py \
 /home/espnet/egs2/iemocap/asr1/download/IEMOCAP_full_release/Session1/sentences/wav \
 --dest /home/SpeechT5/SpeechLM/dataset/iemocap/asr --ext wav --valid-percent 0
+'''
+```
+
+- labels.py to get ltr
+
+```bash
+python iemocap_labels.py /path/to/train.tsv --output-dir /path/to/save --output-name name
+
+'''
+e.g. python iemocap_labels.py \
+/home/SpeechT5/SpeechLM/dataset/iemocap/asr/train.tsv \
+--output-dir /home/SpeechT5/SpeechLM/dataset/iemocap/asr \
+--output-name session1
+'''
+```
+
+### ESD
+
+- manifest.py to get tsv
+
+```bash
+python examples/wav2vec/wav2vec_manifest.py path/to/your/dataset --dest /path/to/save/transfer/files --ext wav --valid-percent 0
 ```
 
 - labels.py to get ltr
 
 ```
-python iemocap_labels.py \
-/home/SpeechT5/SpeechLM/dataset/iemocap/asr/train.tsv \
---output-dir /home/SpeechT5/SpeechLM/dataset/iemocap/asr \
---output-name session1
+python iemocap_labels.py /path/to/train.tsv --output-dir /path/to/save --output-name name
 ```
 
 ## Pre-train
@@ -93,7 +117,7 @@ python iemocap_labels.py \
   - This tokenizer is used to phonemize the unpaired text data to (phonemes, letters) paired data, following a `words -> phonemes -> upsampled phones` pipeline
   - The following script will download LibriSpeech LM corpus and produce the required data: `train_text.phn-ltr.phn.{idx,bin}` and `train_text.phn-ltr.ltr.{idx,bin}`
 
-```
+```bash
 # data will be in dataset/LibriLM/phone_unit/
 bash speechlm/data_process/prepare_phn2ltr_librilm.sh
 ```
@@ -142,23 +166,22 @@ bash speechlm/scripts/pretrain_speechlm/base_speechlmh.sh $data_dir $text_data_d
 
 - **training data**
 
-```
+```bash
 python examples/wav2vec/wav2vec_manifest.py examples/wav2vec/data --dest examples/wav2vec/manifest --ext flac --valid-percent 0
 ```
 
-$ext should be set to flac, wav, or whatever format your dataset happens to use that soundfile can read.
+- $ext should be set to flac, wav, or whatever format your dataset happens to use that soundfile can read.
+- $valid should be set to some reasonable percentage (like 0.01) of training data to use for validation. To use a pre-defined validation set (like dev-other from librispeech), set to it 0 and then overwrite valid.tsv with a separately pre-processed manifest file.
 
-$valid should be set to some reasonable percentage (like 0.01) of training data to use for validation. To use a pre-defined validation set (like dev-other from librispeech), set to it 0 and then overwrite valid.tsv with a separately pre-processed manifest file.
+* **validation data**
 
-- **validation data**
-
-```
+```bash
 python examples/wav2vec/wav2vec_manifest.py examples/wav2vec/data/validation --dest examples/wav2vec/manifest/validation --ext flac --valid-percent 0
 ```
 
 #### Train a wav2vec 2.0 base model
 
-```
+```bash
 fairseq-hydra-train \
     task.data=/home/fairseq/examples/wav2vec/manifest \
     distributed_training.distributed_world_size=1 +optimization.update_freq='[64]' \
@@ -176,27 +199,25 @@ config: base_1h.yaml
 
 build labels for training data
 
-```
+```bash
 python libri_labels.py /home/fairseq/examples/wav2vec/manifest/train.tsv --output-dir /home/fairseq/examples/wav2vec/manifest --output-name train
 ```
 
 build labels for validation data(dev_other)
 
-```
+```bash
 python libri_labels.py /home/fairseq/examples/wav2vec/manifest/dev_other.tsv --output-dir /home/fairseq/examples/wav2vec/manifest --output-name dev_other
 ```
 
 Prepare validation data manifest
 
-```
+```bash
 python wav2vec_manifest.py data/validation/dev-other --dest manifest --ext flac --valid-percent 0
 ```
 
 Fine-tuning on 100h of Librispeech with letter targets:
 
-```
-
-
+```bash
 $ fairseq-hydra-train \
     task.data=/home/fairseq/examples/wav2vec/manifest \
     model.w2v_path=/home/fairseq/examples/wav2vec/wav2vec_small.pt \
@@ -217,29 +238,59 @@ $ fairseq-hydra-train \
 #### LibriSpeech
 
 - Fine-tune the base model
-  ```
-  bash speechlm/scripts/tune_speechlm_asr/finetune_base_ctc.sh \
-  /home/SpeechT5/SpeechLM/models/speechlmh_base_checkpoint_298_400000.pt \
-  /home/SpeechT5/SpeechLM/dataset/LibriSpeech/asr 'tag400k'
-  ```
+
+```bash
+bash speechlm/scripts/tune_speechlm_asr/finetune_base_ctc.sh \
+/home/SpeechT5/SpeechLM/models/speechlmh_base_checkpoint_298_400000.pt \
+/home/SpeechT5/SpeechLM/dataset/LibriSpeech/asr 'tag400k'
+```
+
 - Solve the problem that model try to access no-existing config files when fine-tuning
   [reference link](https://github.com/microsoft/SpeechT5/commit/e2be6fa52ed8214464f7f7e94543dc82dd535e85)
   [reference link](https://github.com/microsoft/SpeechT5/issues/34)
 - Numpy float
-  ```
-  pip uninstall numpy
-  pip install numpy==1.23.0
-  ```
+
+```bash
+pip uninstall numpy
+pip install numpy==1.23.0
+```
 
 #### IMOCAP
 
 - Fine-tune the base model
-  ```
-  bash speechlm/scripts/tune_speechlm_asr/finetune_base_ctc.sh \
-  /home/SpeechT5/SpeechLM/models/speechlmh_base_checkpoint_298_400000.pt \
-  /home/SpeechT5/SpeechLM/dataset/iemocap/asr 'iemocap'
-  ```
-  ```
-  tensorboard --logdir /path/to/modeldir
-  ```
+
+```bash
+bash speechlm/scripts/tune_speechlm_asr/finetune_base_ctc.sh \
+/home/SpeechT5/SpeechLM/models/speechlmh_base_checkpoint_298_400000.pt \
+/home/SpeechT5/SpeechLM/dataset/iemocap/asr 'iemocap'
+```
+
+```bash
+tensorboard --logdir /path/to/modeldir
+```
+
 - Lable.ltr 要把所有字母轉成大寫
+
+#### ESD
+
+- Fine-tune the base model
+
+```bash
+bash speechlm/scripts/tune_speechlm_asr/finetune_base_ctc.sh \
+/home/SpeechT5/SpeechLM/models/speechlmh_base_checkpoint_298_400000.pt \
+/home/SpeechT5/SpeechLM/dataset/ESD/asr 'esd'
+```
+
+```bash
+tensorboard --logdir /path/to/modeldir
+```
+
+## Pre-Trained and Fine-tuned Models
+
+|    Model     |                                   Pre-training Dataset                                   |            Fine-tuning Dataset             |                                               Model                                                |
+| :----------: | :--------------------------------------------------------------------------------------: | :----------------------------------------: | :------------------------------------------------------------------------------------------------: |
+|   SpeechLM   | [960 hrs LibriSpeech](http://www.openslr.org/12) + [40M Text](http://www.openslr.org/11) |                     -                      | [Google drive](https://drive.google.com/file/d/1eblW8U8f9t-NTuCNRrNHwr-8BeLAUAmQ/view?usp=sharing) |
+| SpeechLM_MTL | [960 hrs LibriSpeech](http://www.openslr.org/12) + [40M Text](http://www.openslr.org/11) |                     -                      | [Google drive](https://drive.google.com/file/d/1GrbFdvkUsEqOng5XaN8WiItxsVzhCYzF/view?usp=sharing) |
+| SpeechLM_MTL | [960 hrs LibriSpeech](http://www.openslr.org/12) + [40M Text](http://www.openslr.org/11) |  [LibriSpeech](http://www.openslr.org/12)  | [Google drive](https://drive.google.com/file/d/1z198WeEdZ1ykmxEWbyRf7gyp6fQ0Zk7n/view?usp=sharing) |
+| SpeechLM_MTL | [960 hrs LibriSpeech](http://www.openslr.org/12) + [40M Text](http://www.openslr.org/11) |  [IEMOCAP](https://sail.usc.edu/iemocap/)  | [Google drive](https://drive.google.com/file/d/11V8xPoJoaUpmAY_JfqprNOGVqg7NJdKa/view?usp=sharing) |
+| SpeechLM_MTL | [960 hrs LibriSpeech](http://www.openslr.org/12) + [40M Text](http://www.openslr.org/11) | [ESD](https://hltsingapore.github.io/ESD/) | [Google drive](https://drive.google.com/file/d/1l9JORM7mgyzu6_3c6O4RzAkR1-oNSV1i/view?usp=sharing) |

@@ -26,7 +26,7 @@ task:
   data: ???
   fine_tuning: true
   label_dir: ???
-  normalize: false  # must be consistent with pre-training
+  normalize: false # must be consistent with pre-training
   labels: ["ltr"]
   store_labels: true
   single_target: true
@@ -40,8 +40,8 @@ dataset:
   num_workers: 0
   max_tokens: 1600000
   skip_invalid_size_inputs_valid_test: true
-  train_subset: train_100
-  valid_subset: dev_other
+  train_subset: train_clean_100
+  valid_subset: dev_clean
   required_batch_size_multiple: 1
 
 criterion:
@@ -81,8 +81,8 @@ hydra:
   job:
     config:
       override_dirname:
-        kv_sep: '-'
-        item_sep: '__'
+        kv_sep: "-"
+        item_sep: "__"
         exclude_keys:
           - run
           - task.data

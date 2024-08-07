@@ -33,7 +33,7 @@ task:
   store_labels: true
   sample_rate: 16000
   max_sample_size: 250000
-  min_sample_size: 32000
+  min_sample_size: 0 # 32000
   pad_audio: false
   random_crop: true
   normalize: false # must be consistent with extractor
@@ -56,16 +56,18 @@ dataset:
   required_batch_size_multiple: 1
 
 criterion:
-  _name: speechlm_criterion
+  _name: modality_translation_learning_with_contrastive
   pred_masked_weight: 1.0
   pred_nomask_weight: 0.0
   loss_weights: [10]
   text_ctc_weight: 0.1
   text_mum_weight: 0.0
+  contrastive_weight: 0.0
+  contrastive_temperature: 1.0
 
 optimization:
-  max_update: 1000000
-  lr: [0.000003]
+  max_update: 400000
+  lr: [0.0005]
   clip_norm: 10.0
 
 optimizer:

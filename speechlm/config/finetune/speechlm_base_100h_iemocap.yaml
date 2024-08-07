@@ -40,8 +40,8 @@ dataset:
   num_workers: 0
   max_tokens: 1600000
   skip_invalid_size_inputs_valid_test: true
-  train_subset: train
-  valid_subset: valid
+  train_subset: iemocap_train
+  valid_subset: iemocap_test
   required_batch_size_multiple: 1
 
 criterion:
@@ -69,7 +69,7 @@ model:
   _name: speechlm_ctc
   w2v_path: ???
   apply_mask: true
-  mask_prob: 0.65 # 0.65
+  mask_prob: 0.8 # 0.65
   mask_channel_prob: 0.5
   mask_channel_length: 64
   layerdrop: 0.1
